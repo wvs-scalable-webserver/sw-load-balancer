@@ -21,25 +21,21 @@ public class CheckSocketBackendTask extends CheckBackendTask {
     @Override
     public void check() {
 
-        synchronized (balancingStrategy.getBackend()) {
-            synchronized (backendInfo) {
-                for (BackendInfo info : backendInfo) {
-                    if (info.checkSocket()) {
-                        if (!balancingStrategy.hasBackend(info)) {
-                            balancingStrategy.addBackend(info);
-                            logger.info("{} is up again and was added back to the load balancer", info.getName());
-                        }
-                    } else {
-                        if (balancingStrategy.hasBackend(info)) {
-                            logger.warn("{} went down and was removed from the load balancer", info.getName());
-                            balancingStrategy.removeBackend(info);
+        for (BackendInfo info : backendInfo) {
+            if (info.checkSocket()) {
+                if (!balancingStrategy.hasBackend(info)) {
+                    balancingStrategy.addBackend(info);
+                    logger.info("{} is up again and was added back to the load balancer", info.getName());
+                }
+            } else {
+                if (balancingStrategy.hasBackend(info)) {
+                    logger.warn("{} went down and was removed from the load balancer", info.getName());
+                    balancingStrategy.removeBackend(info);
 
-                            if (balancingStrategy.getBackend().size() == 0) {
-                                logger.error("No more backend servers online");
-                            } else {
-                                logger.info("{} backend servers left", balancingStrategy.getBackend().size());
-                            }
-                        }
+                    if (balancingStrategy.getBackend().size() == 0) {
+                        logger.error("No more backend servers online");
+                    } else {
+                        logger.info("{} backend servers left", balancingStrategy.getBackend().size());
                     }
                 }
             }

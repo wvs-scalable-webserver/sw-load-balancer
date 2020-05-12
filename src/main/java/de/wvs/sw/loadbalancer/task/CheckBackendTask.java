@@ -24,6 +24,12 @@ public abstract class CheckBackendTask implements Runnable {
 
     public abstract void check();
 
+
+    public List<BackendInfo> getBackends() {
+
+        return this.backendInfo;
+    }
+
     public synchronized void addBackend(BackendInfo backendInfo) {
 
         this.backendInfo.add(backendInfo);

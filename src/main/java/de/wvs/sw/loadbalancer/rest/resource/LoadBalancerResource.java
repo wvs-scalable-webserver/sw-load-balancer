@@ -1,11 +1,14 @@
 package de.wvs.sw.loadbalancer.rest.resource;
 
 import com.google.gson.Gson;
+import de.progme.hermes.server.http.annotation.method.DELETE;
+import de.progme.hermes.server.http.annotation.method.POST;
 import de.wvs.sw.loadbalancer.LoadBalancer;
 import de.wvs.sw.loadbalancer.rest.response.LoadBalancerListResponse;
 import de.wvs.sw.loadbalancer.rest.response.LoadBalancerResponse;
 import de.wvs.sw.loadbalancer.rest.response.LoadBalancerStatsResponse;
 import de.wvs.sw.loadbalancer.strategy.BalancingStrategy;
+import de.wvs.sw.loadbalancer.task.CheckBackendTask;
 import de.wvs.sw.loadbalancer.task.ConnectionsPerSecondTask;
 import de.wvs.sw.loadbalancer.util.BackendInfo;
 import de.progme.hermes.server.http.Request;
@@ -19,6 +22,8 @@ import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import io.netty.handler.traffic.TrafficCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 /**
  * Created by Marvin Erkes on 04.02.2020.
@@ -50,18 +55,16 @@ public class LoadBalancerResource {
                 -1))).build();
     }
 
-    @GET
+    @POST
     @Path("/add/{name}/{ip}/{port}")
     @Produces(ContentType.APPLICATION_JSON)
     public Response add(Request httpRequest, @PathParam String name, @PathParam String ip, @PathParam String port) {
 
         BackendInfo found = null;
-        synchronized (LoadBalancer.getBalancingStrategy().getBackend()) {
-            for (BackendInfo info : LoadBalancer.getBalancingStrategy().getBackend()) {
-                if (info.getName().equalsIgnoreCase(name)) {
-                    found = info;
-                    break;
-                }
+        for (BackendInfo info : LoadBalancer.getBackendTask().getBackends()) {
+            if (info.getName().equalsIgnoreCase(name)) {
+                found = info;
+                break;
             }
         }
 
@@ -80,18 +83,16 @@ public class LoadBalancerResource {
         }
     }
 
-    @GET
+    @DELETE
     @Path("/remove/{name}")
     @Produces(ContentType.APPLICATION_JSON)
     public Response remove(Request httpRequest, @PathParam String name) {
 
         BackendInfo found = null;
-        synchronized (LoadBalancer.getBalancingStrategy().getBackend()) {
-            for (BackendInfo info : LoadBalancer.getBalancingStrategy().getBackend()) {
-                if (info.getName().equalsIgnoreCase(name)) {
-                    found = info;
-                    break;
-                }
+        for (BackendInfo info : LoadBalancer.getBackendTask().getBackends()) {
+            if (info.getName().equalsIgnoreCase(name)) {
+                found = info;
+                break;
             }
         }
 
@@ -113,16 +114,11 @@ public class LoadBalancerResource {
     @Path("/list")
     @Produces(ContentType.APPLICATION_JSON)
     public Response list(Request httpRequest) {
-
-        BalancingStrategy balancingStrategy = LoadBalancer.getBalancingStrategy();
-        if (balancingStrategy != null) {
-            return Response.ok().content(gson.toJson(new LoadBalancerListResponse(LoadBalancerResponse.Status.OK, "List received",
-                    balancingStrategy.getBackend()))).build();
-        } else {
-            return Response.ok().content(gson.toJson(new LoadBalancerListResponse(LoadBalancerResponse.Status.ERROR,
-                    "Unable to get the balancing strategy",
-                    null))).build();
-        }
+        List<BackendInfo> backend = LoadBalancer.getBackendTask().getBackends();
+        return Response
+                .ok()
+                .content(gson.toJson(new LoadBalancerListResponse(LoadBalancerResponse.Status.OK, "List received", backend)))
+                .build();
     }
 
     @GET
